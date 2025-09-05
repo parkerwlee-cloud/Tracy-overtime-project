@@ -1,2 +1,37 @@
 {% extends "_base.html" %}
-/* (same content as in Option A display.html above) */
+{% block content %}
+<h2>Weekly Overtime Wallboard</h2>
+
+<table>
+  <tr>
+    <th>Date</th>
+    <th>2 Early</th>
+    <th>2 Late</th>
+  </tr>
+
+  {% for day, slots in grid.items() %}
+  <tr>
+    <td style="white-space:nowrap">{{ day }}</td>
+
+    {% for label, code in SLOT_TYPES %}
+    <td>
+      {% if slots.get(code) %}
+        {% set s = slots.get(code) %}
+        {% for p in s.people %}
+          {{ p.name }} ({{ p.clock }}){% if p.is_second_2l %} <span class="pill">2nd 2L</span>{% endif %}<br>
+        {% endfor %}
+        {% if not s.people %}<em class="muted">Empty</em>{% endif %}
+        {% if s.categories %}
+          <div class="muted" style="margin-top:.25rem">
+            Categories: {% for c in s.categories %}<span class="pill">{{ c }}</span>{% endfor %}
+          </div>
+        {% endif %}
+      {% else %}
+        <em class="muted">n/a</em>
+      {% endif %}
+    </td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
