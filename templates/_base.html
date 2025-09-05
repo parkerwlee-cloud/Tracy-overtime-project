@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Overtime Kiosk</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>/* (same CSS as above) */</style>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.io) {
+        const s = io();
+        s.on('refresh', () => location.reload());
+      }
+    });
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Overtime Kiosk</h1>
+    <nav>
+      <a class="btn secondary" href="{{ url_for('index') }}">Kiosk</a>
+      <a class="btn secondary" href="{{ url_for('display_wallboard') }}">Wallboard</a>
+      <a class="btn secondary" href="{{ url_for('admin_panel') }}">Admin</a>
+    </nav>
+  </header>
+  {% block content %}{% endblock %}
+</body>
+</html>
