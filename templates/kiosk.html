@@ -1,2 +1,60 @@
 {% extends "_base.html" %}
-/* (same content as in Option A kiosk.html above) */
+{% block content %}
+<h2>Sign Up</h2>
+<p class="muted">Tap a slot to sign up. Fields marked * are required. Today’s 2L special window: 14:00–15:30 (second-2L forfeiture).</p>
+
+<table>
+  <tr>
+    <th>Date</th>
+    {% for label, code in SLOT_TYPES %}
+      <th>{{ label }}</th>
+    {% endfor %}
+  </tr>
+
+  {% for day, slots in grid.items() %}
+  <tr>
+    <td style="white-space:nowrap">{{ day }}</td>
+
+    {% for label, code in SLOT_TYPES %}
+    {% set s = slots.get(code) %}
+    <td>
+      {% if s %}
+        <div><strong>Capacity:</strong> {{ s.capacity }} &nbsp; <strong>Taken:</strong> {{ s.taken }}</div>
+
+        {% if s.categories %}
+          <div class="muted">Categories:
+            {% for c in s.categories %}<span class="pill">{{ c }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        {% if s.state_hint %}<div class="hint">{{ s.state_hint }}</div>{% endif %}
+
+        <div style="margin:.5rem 0">
+          {% for p in s.people %}
+            {{ p.name }} ({{ p.clock }}){% if p.is_second_2l %} <span class="pill">2nd 2L</span>{% endif %}<br>
+          {% endfor %}
+          {% if not s.people %}<em class="muted">Empty</em>{% endif %}
+        </div>
+
+        <form method="POST" action="{{ url_for('signup') }}">
+          <input type="hidden" name="slot_id" value="{{ s.id }}">
+          <div class="row">
+            <input name="name" placeholder="Name *" required>
+            <input name="clock_number" placeholder="Clock Number (4 digits) *" pattern="\\d{4}" required>
+            <input name="phone" placeholder="Phone (optional)">
+            {% if s.disabled %}
+              <button class="btn" type="submit" disabled>Signup disabled</button>
+            {% else %}
+              <button class="btn" type="submit">Sign Up</button>
+            {% endif %}
+          </div>
+        </form>
+      {% else %}
+        <em class="muted">n/a</em>
+      {% endif %}
+    </td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
