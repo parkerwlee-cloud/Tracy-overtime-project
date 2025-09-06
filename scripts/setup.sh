@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # scripts/setup.sh
 # One-stop setup for the Overtime Kiosk on a Raspberry Pi (or any Debian-ish Linux).
+# Ensures all scripts are executable, installs deps, migrates DB, installs service, configures autostart.
 # Usage:
-#   ./scripts/setup.sh           # defaults to dual-screen autostart
-#   ./scripts/setup.sh display   # single-screen wallboard
-#   ./scripts/setup.sh kiosk     # single-screen sign-up kiosk
-#   ./scripts/setup.sh dual      # two screens: left=/display, right=/
+#   bash scripts/setup.sh           # defaults to dual-screen autostart
+#   bash scripts/setup.sh display   # single-screen wallboard
+#   bash scripts/setup.sh kiosk     # single-screen sign-up kiosk
+#   bash scripts/setup.sh dual      # two screens: left=/display, right=/
 
 set -euo pipefail
 
@@ -16,6 +17,9 @@ VENV="${APPDIR}/.venv"
 SERVICE_NAME="overtime-kiosk"
 SERVICE_FILE_SRC="${APPDIR}/systemd/overtime-kiosk.service"
 SERVICE_FILE_DST="/etc/systemd/system/overtime-kiosk.service"
+
+echo "▶ Making all repo scripts executable"
+find "${APPDIR}/scripts" -type f -name "*.sh" -exec chmod +x {} \; || true
 
 echo "▶ Python venv & dependencies"
 python3 -m venv "$VENV"
@@ -38,9 +42,7 @@ sudo systemctl enable "$SERVICE_NAME"
 sudo systemctl restart "$SERVICE_NAME"
 
 echo "▶ Configure autostart (mode: $MODE)"
-if [[ ! -x "$APPDIR/scripts/setup-autostart.sh" ]]; then
-  chmod +x "$APPDIR/scripts/setup-autostart.sh" || true
-fi
+chmod +x "$APPDIR/scripts/setup-autostart.sh" || true
 "$APPDIR/scripts/setup-autostart.sh" "$MODE"
 
 echo "▶ Install logs helper (/usr/local/bin/kiosk-logs)"
@@ -54,5 +56,5 @@ echo
 echo "✅ Setup complete"
 echo "   • Follow logs: kiosk-logs"
 echo "   • Service:     sudo systemctl status overtime-kiosk --no-pager"
+echo "   • Update:      ./scripts/update-kiosk.sh   (use --force to discard local edits)"
 echo "   • Change mode: ./scripts/setup-autostart.sh display|kiosk|dual && logout/reboot"
-
