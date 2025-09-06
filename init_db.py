@@ -9,6 +9,7 @@ def start_of_week(d=None):
     return d - timedelta(days=d.weekday())
 
 def migrate(conn):
+    conn.execute("PRAGMA foreign_keys = ON;")
     c = conn.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS employees (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,14 +45,18 @@ def migrate(conn):
         new_employee_id INTEGER NOT NULL,
         bumped_employee_id INTEGER NOT NULL,
         created_at TEXT NOT NULL,
-        reason TEXT,
-        FOREIGN KEY(slot_id) REFERENCES slots(id)
+        reason TEXT NOT NULL,
+        FOREIGN KEY(slot_id) REFERENCES slots(id),
+        FOREIGN KEY(new_employee_id) REFERENCES employees(id),
+        FOREIGN KEY(bumped_employee_id) REFERENCES employees(id)
     )""")
+    # Prevent duplicate signups per employee per slot
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_signups_emp_slot ON signups(employee_id, slot_id)")
     conn.commit()
 
 def seed_week(conn):
-    ws = start_of_week()
     c = conn.cursor()
+    ws = start_of_week()
     for i in range(7):
         d = (ws + timedelta(days=i)).isoformat()
         for code in ("2E","2L"):
