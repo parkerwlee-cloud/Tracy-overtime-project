@@ -6,9 +6,9 @@ X-GNOME-Autostart-enabled=true
 
 # --- Wallboard Display ---
 # Uncomment ONE of these Exec lines depending on your installed command:
-Exec=chromium-browser --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/display
-# Exec=chromium --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/display
+# Exec=chromium-browser --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/display
+Exec=chromium --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/display
 
 # --- Touchscreen Kiosk ---
-Exec=chromium-browser --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/
-# Exec=chromium --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/
+# Exec=chromium-browser --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/
+Exec=chromium --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/
