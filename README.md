@@ -4,17 +4,17 @@ This project provides a dual-screen kiosk system to manage overtime sign-ups:
 
 - **Wallboard display** (left screen) → `/display` roster
 - **Touchscreen kiosk** (right screen) → `/` sign-up form
-- Runs automatically on a Raspberry Pi at startup
+- Runs automatically on a Raspberry Pi 5 (or Pi 4) at startup
 - Self-heals under systemd, logs available with one command
 
 ---
 
 ## 1. What you need
 
-- Raspberry Pi 4 (or similar) running Raspberry Pi OS Desktop (not Lite)
-- Two monitors (HDMI connections)
-- USB keyboard/mouse (for setup only)
-- Network connection (Ethernet or Wi-Fi)
+- Raspberry Pi 5 (or Pi 4) running Raspberry Pi OS Desktop (Bookworm or newer)  
+- Two monitors (HDMI connections)  
+- USB keyboard/mouse (for setup only)  
+- Network connection (Ethernet or Wi-Fi)  
 
 ---
 
@@ -22,8 +22,8 @@ This project provides a dual-screen kiosk system to manage overtime sign-ups:
 
 1. Boot Pi to the desktop and connect it to the internet.  
 2. Open a Terminal (black icon on the top bar).  
-3. Install git and Python tools:
+3. Install git, Python tools, and Chromium:
 
    ```bash
    sudo apt update
-   sudo apt install -y git python3-venv
+   sudo apt install -y git python3-venv chromium
