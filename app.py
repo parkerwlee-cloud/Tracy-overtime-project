@@ -179,6 +179,10 @@ def grid_for_week():
 
 @app.get("/")
 def kiosk():
+    # --- alias: let url_for('index') resolve to the home route ---
+# Some templates or redirects may still call url_for('index').
+# This binds the existing "/" route (kiosk) to the endpoint name "index".
+    app.add_url_rule("/", endpoint="index", view_func=kiosk)
     ensure_week_slots()
     grid = grid_for_week()
     return render_template("kiosk.html", grid=grid, SLOT_TYPES=SLOT_TYPES)
