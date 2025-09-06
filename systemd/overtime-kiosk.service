@@ -1,3 +1,5 @@
+# NOTE: Not used by setup; see scripts/install-service.sh which renders a dynamic unit with the correct User and WorkingDirectory.
+
 [Unit]
 Description=Overtime Kiosk (Flask / Socket.IO)
 After=network-online.target
