@@ -31,13 +31,10 @@ LEFT_POS="0,0"
 RIGHT_POS="1920,0"
 if [[ "${MODE}" == "dual" ]] && command -v xrandr >/dev/null 2>&1; then
   XR=$(xrandr --current | awk '/ connected/{print $1, $3}')
-  # Find the primary-origin screen (ends with +0+0)
   PRIM_LINE=$(echo "$XR" | awk '/\+0\+0$/ {print $0; exit}')
   if [[ -n "${PRIM_LINE}" ]]; then
     PRIM_W=$(echo "$PRIM_LINE" | awk '{print $2}' | cut -d'x' -f1)
-    if [[ "$PRIM_W" =~ ^[0-9]+$ ]]; then
-      RIGHT_POS="${PRIM_W},0"
-    fi
+    [[ "$PRIM_W" =~ ^[0-9]+$ ]] && RIGHT_POS="${PRIM_W},0"
   fi
 fi
 
@@ -48,11 +45,9 @@ mkdir -p "${HOME}/.config/autostart"
 # --- Write LXDE autostart and .desktop based on mode ---
 case "$MODE" in
   display)
-    # LXDE
     cat > "${HOME}/.config/lxsession/LXDE-pi/autostart" <<EOF
 @${CMD} ${EXTRA_FLAGS} ${URL_DISPLAY}
 EOF
-    # .desktop
     cat > "${HOME}/.config/autostart/kiosk.desktop" <<EOF
 [Desktop Entry]
 Type=Application
@@ -62,11 +57,9 @@ X-GNOME-Autostart-enabled=true
 EOF
     ;;
   kiosk)
-    # LXDE
     cat > "${HOME}/.config/lxsession/LXDE-pi/autostart" <<EOF
 @${CMD} ${EXTRA_FLAGS} ${URL_KIOSK}
 EOF
-    # .desktop
     cat > "${HOME}/.config/autostart/kiosk.desktop" <<EOF
 [Desktop Entry]
 Type=Application
@@ -76,12 +69,10 @@ X-GNOME-Autostart-enabled=true
 EOF
     ;;
   dual)
-    # LXDE (two windows)
     cat > "${HOME}/.config/lxsession/LXDE-pi/autostart" <<EOF
 @${CMD} ${EXTRA_FLAGS} --window-position=${LEFT_POS} ${URL_DISPLAY}
 @${CMD} ${EXTRA_FLAGS} --window-position=${RIGHT_POS} ${URL_KIOSK}
 EOF
-    # .desktop (launch both in one Exec)
     cat > "${HOME}/.config/autostart/kiosk.desktop" <<EOF
 [Desktop Entry]
 Type=Application
