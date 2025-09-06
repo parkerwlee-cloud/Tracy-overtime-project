@@ -1,1 +1,6 @@
-# Autostart full build placeholder
+# Choose ONE of the following lines (uncomment it):
+# TV wallboard:
+# @chromium-browser --kiosk --check-for-update-interval=604800 --noerrdialogs --disable-translate --incognito http://localhost:5000/display
+
+# Touch kiosk:
+# @chromium-browser --kiosk --check-for-update-interval=604800 --noerrdialogs --disable-translate --incognito http://localhost:5000/
