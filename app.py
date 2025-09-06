@@ -11,11 +11,11 @@ SECRET_KEY = os.getenv("FLASK_SECRET", "dev-secret")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 PRIOR_DAY_FREEZE = os.getenv("PRIOR_DAY_FREEZE", "14:00")
 TODAY_2L_CLOSE = os.getenv("TODAY_2L_CLOSE", "15:30")
-# Twilio (kept as placeholders for later use)
+# Twilio placeholders (kept for future use)
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_FROM = os.getenv("TWILIO_FROM", "")
-# Email (kept as placeholders for later use)
+# Email placeholders (kept for future use)
 SMTP_HOST=os.getenv("SMTP_HOST","")
 SMTP_PORT=os.getenv("SMTP_PORT","587")
 SMTP_USER=os.getenv("SMTP_USER","")
@@ -65,7 +65,6 @@ def is_2e_frozen(slot_date_iso):
     now = datetime.now()
     if d < date.today():
         return False
-    # compare prior day 14:00
     cutoff = datetime.combine(d - timedelta(days=1), parse_hhmm(PRIOR_DAY_FREEZE))
     return now >= cutoff
 
@@ -153,7 +152,6 @@ def grid_for_week():
                 taken = 0
                 if slot_id:
                     taken = db.execute("SELECT COUNT(*) c FROM signups WHERE slot_id=?", (slot_id,)).fetchone()["c"]
-                # state/disabled
                 disabled = False
                 state_hint = ""
                 if code == "2E" and is_2e_frozen(d) and date.fromisoformat(d) >= date.today():
@@ -179,10 +177,6 @@ def grid_for_week():
 
 @app.get("/")
 def kiosk():
-    # --- alias: let url_for('index') resolve to the home route ---
-# Some templates or redirects may still call url_for('index').
-# This binds the existing "/" route (kiosk) to the endpoint name "index".
-    app.add_url_rule("/", endpoint="index", view_func=kiosk)
     ensure_week_slots()
     grid = grid_for_week()
     return render_template("kiosk.html", grid=grid, SLOT_TYPES=SLOT_TYPES)
@@ -366,7 +360,7 @@ def signup():
             if phone and not (emp["phone"] or "").strip():
                 db.execute("UPDATE employees SET phone=? WHERE id=?", (phone, emp_id))
 
-        # Prevent duplicate signup for the same slot
+        # Duplicate guard
         already = db.execute(
             "SELECT 1 FROM signups WHERE employee_id=? AND slot_id=? LIMIT 1",
             (emp_id, slot["id"])
@@ -391,18 +385,19 @@ def signup():
             db.commit()
             socketio.emit("refresh", {"msg":"signup_changed"})
             return jsonify(ok=True, status="success"), 200
-        # Full: evaluate bump logic
+
+        # Full: bump logic
         occ = db.execute("""
             SELECT x.id signup_id, e.id emp_id, e.clock_number, e.name, e.phone
             FROM signups x JOIN employees e ON e.id=x.employee_id
             WHERE x.slot_id=? ORDER BY x.created_at
         """,(slot["id"],)).fetchall()
-        # Special window: today 2L between 14:00 and 15:30 => only bump the second 2L occupant
+
+        # Special window: only second-2L bumps 14:00–15:30 today
         if slot["slot_code"] == "2L" and today_2l_window_state(slot["slot_date"]) == "win_1400_1530":
             candidates = [o for o in occ if is_second_2l_for_signup(db, o["signup_id"])]
             if not candidates:
                 return jsonify(ok=False, status="full_no_bump_window", error="Slot full; only second-2L bumps allowed until 15:30."), 200
-            # bump the LEAST senior among second-2L (highest clock number)
             loser = sorted(candidates, key=lambda o: seniority_key(o["clock_number"]), reverse=True)[0]
             try:
                 db.execute("BEGIN")
@@ -427,7 +422,7 @@ def signup():
             o_match = len(slot_cats.intersection(o_cats)) > 0
             # second-2L first (1), then others (2);
             # non-matching cats first (0), then matching (1);
-            # LEAST senior first => negative seniority key
+            # least senior first (negative seniority)
             return (1 if is_second else 2, 0 if not o_match else 1, -seniority_key(o["clock_number"]))
 
         weakest = sorted(occ, key=occ_priority)[0]
