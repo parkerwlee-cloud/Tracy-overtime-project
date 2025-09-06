@@ -1,21 +1,17 @@
-# Python cache/bytecode
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Virtual environments
+*.egg-info/
 .venv/
 venv/
-ENV/
+env/
 
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-
-# SQLite databases
+# Databases
 overtime.db
+*.db
+*.sqlite
 *.sqlite3
 
 # Environment files
