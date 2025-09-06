@@ -10,5 +10,5 @@ Exec=chromium-browser --kiosk --incognito --noerrdialogs --disable-translate htt
 # Exec=chromium --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/display
 
 # --- Touchscreen Kiosk ---
-# Exec=chromium-browser --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/
+Exec=chromium-browser --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/
 # Exec=chromium --kiosk --incognito --noerrdialogs --disable-translate http://localhost:5000/
