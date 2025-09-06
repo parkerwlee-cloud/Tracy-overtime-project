@@ -27,7 +27,7 @@ EXTRA_FLAGS="--kiosk --incognito --noerrdialogs --disable-translate"
 
 # --- detect screens / geometry for dual ---
 LEFT_POS="0,0"
-RIGHT_POS="1920,0"  # fallback
+RIGHT_POS="1024,0"  # fallback
 if [[ "${MODE}" == "dual" ]]; then
   if command -v xrandr >/dev/null 2>&1; then
     # detect primary origin and second output origin
