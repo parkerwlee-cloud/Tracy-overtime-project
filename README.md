@@ -1,12 +1,29 @@
-# Overtime Kiosk (Full Build)
+# Overtime Kiosk
 
-## Quick Start (Dev)
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # edit ADMIN_PASSWORD, times
-python init_db.py
-python app.py
-./scripts/setup-autostart.sh dual
-# http://127.0.0.1:5000
+This project provides a dual-screen kiosk system to manage overtime sign-ups:
+
+- **Wallboard display** (left screen) → `/display` roster
+- **Touchscreen kiosk** (right screen) → `/` sign-up form
+- Runs automatically on a Raspberry Pi at startup
+- Self-heals under systemd, logs available with one command
+
+---
+
+## 1. What you need
+
+- Raspberry Pi 4 (or similar) running Raspberry Pi OS Desktop (not Lite)
+- Two monitors (HDMI connections)
+- USB keyboard/mouse (for setup only)
+- Network connection (Ethernet or Wi-Fi)
+
+---
+
+## 2. Prepare the Pi (first time only)
+
+1. Boot Pi to the desktop and connect it to the internet.  
+2. Open a Terminal (black icon on the top bar).  
+3. Install git and Python tools:
+
+   ```bash
+   sudo apt update
+   sudo apt install -y git python3-venv
