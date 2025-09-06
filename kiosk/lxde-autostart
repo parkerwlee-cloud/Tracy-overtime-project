@@ -1,0 +1,13 @@
+# LXDE Autostart file for Raspberry Pi kiosk mode
+# Copy this file to: ~/.config/lxsession/LXDE-pi/autostart
+# Then log out / log back in (or reboot) to auto-launch Chromium in kiosk mode.
+
+# --- Wallboard Display (read-only roster) ---
+# Uncomment ONE of these depending on your installed command:
+# @chromium-browser --kiosk --check-for-update-interval=604800 --noerrdialogs --disable-translate --incognito http://localhost:5000/display
+# @chromium --kiosk --check-for-update-interval=604800 --noerrdialogs --disable-translate --incognito http://localhost:5000/display
+
+# --- Touchscreen Kiosk (sign-up form) ---
+# Uncomment ONE of these depending on your installed command:
+# @chromium-browser --kiosk --check-for-update-interval=604800 --noerrdialogs --disable-translate --incognito http://localhost:5000/
+# @chromium --kiosk --check-for-update-interval=604800 --noerrdialogs --disable-translate --incognito http://localhost:5000/
