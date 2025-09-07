@@ -1,60 +1,53 @@
 {% extends "_base.html" %}
 {% block content %}
-<h2>Sign Up</h2>
-<p class="muted">Tap a slot to sign up. Fields marked * are required. Today’s 2L special window: 14:00–15:30 (second-2L forfeiture).</p>
+<h2>Kiosk</h2>
 
-<table>
-  <tr>
-    <th>Date</th>
-    {% for label, code in SLOT_TYPES %}
-      <th>{{ label }}</th>
-    {% endfor %}
-  </tr>
-
-  {% for day, slots in grid.items() %}
-  <tr>
-    <td style="white-space:nowrap">{{ day }}</td>
-
-    {% for label, code in SLOT_TYPES %}
-    {% set s = slots.get(code) %}
-    <td>
-      {% if s %}
-        <div><strong>Capacity:</strong> {{ s.capacity }} &nbsp; <strong>Taken:</strong> {{ s.taken }}</div>
-
-        {% if s.categories %}
-          <div class="muted">Categories:
-            {% for c in s.categories %}<span class="pill">{{ c }}</span>{% endfor %}
-          </div>
-        {% endif %}
-
-        {% if s.state_hint %}<div class="hint">{{ s.state_hint }}</div>{% endif %}
-
-        <div style="margin:.5rem 0">
-          {% for p in s.people %}
-            {{ p.name }} ({{ p.clock }}){% if p.is_second_2l %} <span class="pill">2nd 2L</span>{% endif %}<br>
-          {% endfor %}
-          {% if not s.people %}<em class="muted">Empty</em>{% endif %}
-        </div>
-
-        <form method="POST" action="{{ url_for('signup') }}">
-          <input type="hidden" name="slot_id" value="{{ s.id }}">
-          <div class="row">
-            <input name="name" placeholder="Name *" required>
-            <input name="clock_number" placeholder="Clock Number (4 digits) *" pattern="\\d{4}" required>
-            <input name="phone" placeholder="Phone (optional)">
-            {% if s.disabled %}
-              <button class="btn" type="submit" disabled>Signup disabled</button>
+{% for day in grid %}
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">{{ day.date }}</h3>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:120px">Slot</th>
+          <th style="width:120px">Taken / Cap</th>
+          <th>Sign Up</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in day.rows %}
+        <tr>
+          <td>{{ r.label }}</td>
+          <td>{{ r.taken }} / {{ r.capacity }}</td>
+          <td>
+            {% if r.disabled %}
+              <span class="muted">{{ r.state_hint or "Closed" }}</span>
+            {% elif r.capacity <= r.taken %}
+              <span class="muted">Full</span>
+              {# still show form to allow bump attempt if your logic allows it #}
+              <form method="post" action="{{ url_for('signup') }}" class="row" style="margin-top:8px; gap:6px">
+                <input type="hidden" name="slot_id" value="{{ r.slot_id }}">
+                <input name="name" placeholder="Name" required>
+                <input name="clock_number" placeholder="Clock #" pattern="\d{4}" required>
+                <input name="phone" placeholder="Phone">
+                <button class="btn" type="submit">Try to bump</button>
+              </form>
             {% else %}
-              <button class="btn" type="submit">Sign Up</button>
+              <form method="post" action="{{ url_for('signup') }}" class="row" style="gap:6px">
+                <input type="hidden" name="slot_id" value="{{ r.slot_id }}">
+                <input name="name" placeholder="Name" required>
+                <input name="clock_number" placeholder="Clock #" pattern="\d{4}" required>
+                <input name="phone" placeholder="Phone">
+                <button class="btn primary" type="submit">Sign up</button>
+              </form>
             {% endif %}
-          </div>
-        </form>
-      {% else %}
-        <em class="muted">n/a</em>
-      {% endif %}
-    </td>
-    {% endfor %}
-  </tr>
-  {% endfor %}
-</table>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
+
 {% endblock %}
