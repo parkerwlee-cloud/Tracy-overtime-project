@@ -4,7 +4,7 @@
 
 <div class="row">
   <a class="btn" href="{{ url_for('admin_employees') }}">Manage Employees</a>
-  <a class="btn secondary" href="{{ url_for('display_wallboard') }}">View Wallboard</a>
+  <a class="btn secondary" href="{{ url_for('wallboard') }}">View Wallboard</a>
 </div>
 
 <h3 style="margin-top:1rem">Slots (capacity & categories)</h3>
@@ -14,21 +14,17 @@
     <th>Code</th>
     <th>Capacity</th>
     <th>Categories</th>
-    <th>Roster</th>
   </tr>
-
   {% for r in rows %}
   <tr>
-    <td>{{ r.slot_date }}</td>
-    <td>{{ r.slot_code }}</td>
-
+    <td>{{ r.date }}</td>
+    <td>{{ r.code }}</td>
     <td>
       <form method="POST" action="{{ url_for('admin_set_capacity', slot_id=r.id) }}">
         <input type="number" name="capacity" value="{{ r.capacity }}" min="0" style="width:5rem">
         <button class="btn" type="submit">Save</button>
       </form>
     </td>
-
     <td>
       <form method="POST" action="{{ url_for('admin_set_slot_categories', slot_id=r.id) }}">
         <select name="categories" multiple size="4">
@@ -38,21 +34,6 @@
         </select>
         <button class="btn" type="submit">Update</button>
       </form>
-      {% if r.cats %}
-        <div class="muted" style="margin-top:.25rem">
-          Current: {% for c in r.cats %}<span class="pill">{{ c }}</span>{% endfor %}
-        </div>
-      {% endif %}
-    </td>
-
-    <td>
-      {% if roster.get(r.id) %}
-        {% for p in roster[r.id] %}
-          {{ p.name }} ({{ p.clock }}){% if p.is_second_2l %} <span class="pill">2nd 2L</span>{% endif %}<br>
-        {% endfor %}
-      {% else %}
-        <em class="muted">Empty</em>
-      {% endif %}
     </td>
   </tr>
   {% endfor %}
