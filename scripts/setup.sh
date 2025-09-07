@@ -105,3 +105,13 @@ ok "Setup complete"
 echo "   • Follow logs: kiosk-logs"
 echo "   • Update:      ./scripts/update-kiosk.sh"
 echo "   • Change mode: ./scripts/setup-autostart.sh display|kiosk|dual && logout/reboot"
+echo "📺 Installing touchscreen mapping script..."
+
+# Copy to /usr/local/bin and make it executable
+sudo cp scripts/map-touch-by-name.sh /usr/local/bin/map-touch-by-name.sh
+sudo chmod +x /usr/local/bin/map-touch-by-name.sh
+
+# Ensure autostart on Raspberry Pi OS
+mkdir -p ~/.config/lxsession/LXDE-pi
+grep -q "map-touch-by-name.sh" ~/.config/lxsession/LXDE-pi/autostart 2>/dev/null || \
+echo "@/usr/local/bin/map-touch-by-name.sh" >> ~/.config/lxsession/LXDE-pi/autostart
