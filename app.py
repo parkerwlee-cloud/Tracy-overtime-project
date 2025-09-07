@@ -32,10 +32,19 @@ SLOT_CODES = [code for code, _ in SLOT_TYPES]
 CATEGORIES = {"Electrical","Mechanical","Programming","Mobile Equipment","Batch","Inspection"}
 
 app = Flask(__name__)
+ensure_schema()
 app.secret_key = SECRET_KEY
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 CLOCK_RE = re.compile(r"^\d{4}$")
+
+
+def ensure_schema():
+    with get_db() as db:
+        cols = [r[1] for r in db.execute("PRAGMA table_info(signups)")]
+        if 'part' not in cols:
+            db.execute("ALTER TABLE signups ADD COLUMN part TEXT")
+            db.commit()
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -182,28 +191,56 @@ def kiosk():
     return render_template("kiosk.html", grid=grid, SLOT_TYPES=SLOT_TYPES)
 
 @app.get("/display")
+
+def choose_weekend_winners(rows):
+    """Weekend winners: any 'full8' beats any combo of 4s; else up to two 4s (prefer first+last)."""
+    full8 = [r for r in rows if (r.get('part') or '').lower() == 'full8']
+    if full8:
+        return [sorted(full8, key=lambda x: x.get('submitted_at'))[0]]
+    first4 = [r for r in rows if (r.get('part') or '').lower() in ('first4','early','first')]
+    last4  = [r for r in rows if (r.get('part') or '').lower() in ('last4','late','last')]
+    if first4 and last4:
+        return [sorted(first4, key=lambda x: x.get('submitted_at'))[0],
+                sorted(last4,  key=lambda x: x.get('submitted_at'))[0]]
+    both = sorted(first4 + last4, key=lambda x: x.get('submitted_at'))
+    return both[:2]
+
+
 def wallboard():
     ensure_week_slots()
     grid = grid_for_week()
-    
-    # attach assignees (winners) to each row for display
+
+    # Attach assignees per slot; weekend winners chosen by rule
     with get_db() as db:
         for day in grid:
+            try:
+                day_date = date.fromisoformat(day.get('date'))
+            except Exception:
+                day_date = None
             for r in day.get('rows', []):
                 sid = r.get('slot_id') if isinstance(r, dict) else None
-                taken = r.get('taken', 0) if isinstance(r, dict) else 0
-                if sid and taken:
-                    rows = db.execute("""
-                        SELECT e.name, e.clock_number
-                        FROM signups s JOIN employees e ON e.id=s.employee_id
-                        WHERE s.slot_id=?
-                        ORDER BY s.created_at
-                    """, (sid,)).fetchall()
-                    r['assignees'] = [dict(name=row['name'], clock_number=row['clock_number']) for row in rows]
-                else:
+                if not sid:
                     r['assignees'] = []
+                    continue
+                rows = db.execute(
+                    """
+                    SELECT e.name, e.clock_number, s.created_at as submitted_at, s.part as part
+                    FROM signups s JOIN employees e ON e.id=s.employee_id
+                    WHERE s.slot_id=?
+                    ORDER BY s.created_at
+                    """,
+                    (sid,)
+                ).fetchall()
+                people = [dict(name=row['name'], clock_number=row['clock_number'], submitted_at=row['submitted_at'], part=row['part']) for row in rows]
+                if day_date and day_date.weekday() in (5,6):
+                    winners = choose_weekend_winners(people)
+                else:
+                    cap = r.get('capacity') or 0
+                    winners = [dict(name=p['name'], clock_number=p['clock_number']) for p in people][:cap]
+                r['assignees'] = winners
 
-    return render_template("display.html", grid=grid, SLOT_TYPES=SLOT_TYPES)  # ASSIGNEES_ATTACHED
+    return render_template("display.html", grid=grid, SLOT_TYPES=SLOT_TYPES)
+  # ASSIGNEES_ATTACHED
 
 @app.route("/admin", methods=["GET","POST"])
 def admin_login():
@@ -292,6 +329,8 @@ def admin_emp_create():
     require_admin()
     name = request.form.get("name","").strip()
     clock = request.form.get("clock_number","").strip()
+    part = (request.form.get(\"part\") or '').strip().lower()
+    part = (request.form.get(\"part\") or '').strip().lower()
     phone = request.form.get("phone","").strip()
     if not (name and re.fullmatch(r"\d{4}", clock)):
         abort(400)
@@ -315,6 +354,7 @@ def admin_emp_update(emp_id):
     name = request.form.get("name","").strip()
     phone = request.form.get("phone","").strip()
     clock = request.form.get("clock_number","").strip()
+    part = (request.form.get(\"part\") or '').strip().lower()
     cats = [c for c in request.form.getlist("categories") if c in CATEGORIES]
     if not re.fullmatch(r"\d{4}", clock):
         abort(400)
@@ -349,17 +389,48 @@ def seniority_key(clock_number):
     except:
         return 9999
 
+
+def is_slot_weekend(db, slot_id):
+    row = db.execute("SELECT date FROM slots WHERE id=?", (slot_id,)).fetchone()
+    if not row: 
+        return False
+    try:
+        d = date.fromisoformat(row["date"])
+        return d.weekday() in (5,6)
+    except Exception:
+        return False
+
 @app.post("/signup")
 def signup():
     name = request.form.get("name","").strip()
     phone = request.form.get("phone","").strip()
     clock = request.form.get("clock_number","").strip()
+    part = (request.form.get(\"part\") or '').strip().lower()
     slot_id = request.form.get("slot_id")
     if not (name and clock and slot_id):
         return jsonify(ok=False, error="Missing fields"), 400
     if not CLOCK_RE.fullmatch(clock):
         return jsonify(ok=False, error="Clock Number must be exactly 4 digits"), 400
     with get_db() as db:
+
+        # Weekend bumping logic:
+        wknd = is_slot_weekend(db, slot["id"])
+        if wknd:
+            # Normalize part values
+            if part not in ("first4","full8","last4"):
+                # try to infer from label if not provided
+                pl = (slot.get("label") or "").lower()
+                if "full" in pl or "8" in pl:
+                    part = "full8"
+            if part == "full8":
+                # Full 8 automatically bumps partials on weekends
+                db.execute("DELETE FROM signups WHERE slot_id=? AND (part='first4' OR part='last4')", (slot["id"],))
+            elif part in ("first4","last4"):
+                # If a Full 8 already exists, do not allow partial
+                exists_full = db.execute("SELECT 1 FROM signups WHERE slot_id=? AND part='full8' LIMIT 1", (slot["id"],)).fetchone()
+                if exists_full:
+                    flash("A Full 8 signup already holds this weekend slot. Your 4-hour signup was not added.", "warning")
+                    return redirect(url_for("kiosk"))
         slot = db.execute("SELECT id, slot_date, slot_code, capacity FROM slots WHERE id=?", (slot_id,)).fetchone()
         if not slot:
             return jsonify(ok=False, error="Slot not found"), 404
@@ -399,7 +470,7 @@ def signup():
                 return jsonify(ok=False, status="closed_today_2l", error="Today's 2L closed at 15:30."), 200
         taken = db.execute("SELECT COUNT(*) c FROM signups WHERE slot_id=?", (slot["id"],)).fetchone()["c"]
         if taken < slot["capacity"]:
-            db.execute("INSERT INTO signups (employee_id, slot_id, created_at) VALUES (?,?,datetime('now'))",(emp_id, slot["id"]))
+            db.execute("INSERT INTO signups (employee_id, slot_id, created_at, part) VALUES (?,?,datetime('now'), ?)", (emp_id, slot["id"], part))
             db.commit()
             socketio.emit("refresh", {"msg":"signup_changed"})
             return jsonify(ok=True, status="success"), 200
@@ -420,7 +491,7 @@ def signup():
             try:
                 db.execute("BEGIN")
                 db.execute("DELETE FROM signups WHERE id=?", (loser["signup_id"],))
-                db.execute("INSERT INTO signups (employee_id, slot_id, created_at) VALUES (?,?,datetime('now'))",(emp_id, slot["id"]))
+                db.execute("INSERT INTO signups (employee_id, slot_id, created_at, part) VALUES (?,?,datetime('now'), ?)", (emp_id, slot["id"], part))
                 db.execute("INSERT INTO bump_events (slot_id, new_employee_id, bumped_employee_id, created_at, reason) VALUES (?,?,?,datetime('now'),?)",
                            (slot["id"], emp_id, loser["emp_id"], "today_2l_second_forfeiture"))
                 db.commit()
@@ -458,7 +529,7 @@ def signup():
         try:
             db.execute("BEGIN")
             db.execute("DELETE FROM signups WHERE id=?", (weakest["signup_id"],))
-            db.execute("INSERT INTO signups (employee_id, slot_id, created_at) VALUES (?,?,datetime('now'))",(emp_id, slot["id"]))
+            db.execute("INSERT INTO signups (employee_id, slot_id, created_at, part) VALUES (?,?,datetime('now'), ?)", (emp_id, slot["id"], part))
             db.execute("INSERT INTO bump_events (slot_id, new_employee_id, bumped_employee_id, created_at, reason) VALUES (?,?,?,datetime('now'),?)",
                        (slot["id"], emp_id, weakest["emp_id"], "category_seniority"))
             db.commit()

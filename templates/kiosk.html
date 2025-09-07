@@ -56,6 +56,14 @@
               <span class="muted">Full</span>
               <form method="post" action="{{ url_for('signup') }}" class="row" style="margin-top:8px; gap:6px">
                 <input type="hidden" name="slot_id" value="{{ r.slot_id }}">
+                {% if day.date|is_weekend %}
+                <select name="part" required>
+                  <option value="">Select Part</option>
+                  <option value="first4">First 4</option>
+                  <option value="full8">Full 8</option>
+                  <option value="last4">Last 4</option>
+                </select>
+                {% endif %}
                 <input name="name" placeholder="Full — enter name to try bump" required>
                 <input name="clock_number" placeholder="Clock # (4 digits)" pattern="\\d{4}" required>
                 <input name="phone" placeholder="Phone (optional)">
@@ -64,6 +72,14 @@
             {% else %}
               <form method="post" action="{{ url_for('signup') }}" class="row" style="gap:6px">
                 <input type="hidden" name="slot_id" value="{{ r.slot_id }}">
+                {% if day.date|is_weekend %}
+                <select name="part" required>
+                  <option value="">Select Part</option>
+                  <option value="first4">First 4</option>
+                  <option value="full8">Full 8</option>
+                  <option value="last4">Last 4</option>
+                </select>
+                {% endif %}
                 <input name="name" placeholder="Your name" required>
                 <input name="clock_number" placeholder="Clock # (4 digits)" pattern="\\d{4}" required>
                 <input name="phone" placeholder="Phone (optional)">
