@@ -1,37 +1,47 @@
 {% extends "_base.html" %}
 {% block content %}
-<h2>Weekly Overtime Wallboard</h2>
+<h2>Wallboard</h2>
 
-<table>
-  <tr>
-    <th>Date</th>
-    <th>2 Early</th>
-    <th>2 Late</th>
-  </tr>
-
-  {% for day, slots in grid.items() %}
-  <tr>
-    <td style="white-space:nowrap">{{ day }}</td>
-
-    {% for label, code in SLOT_TYPES %}
-    <td>
-      {% if slots.get(code) %}
-        {% set s = slots.get(code) %}
-        {% for p in s.people %}
-          {{ p.name }} ({{ p.clock }}){% if p.is_second_2l %} <span class="pill">2nd 2L</span>{% endif %}<br>
-        {% endfor %}
-        {% if not s.people %}<em class="muted">Empty</em>{% endif %}
-        {% if s.categories %}
-          <div class="muted" style="margin-top:.25rem">
-            Categories: {% for c in s.categories %}<span class="pill">{{ c }}</span>{% endfor %}
-          </div>
+{% for day in grid %}
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">{{ day.date }}</h3>
+      {% for r in day.rows %}
+        {% if r.state_hint %}
+          <span class="tag" title="{{ r.state_hint }}">{{ r.state_hint }}</span>
         {% endif %}
-      {% else %}
-        <em class="muted">n/a</em>
-      {% endif %}
-    </td>
-    {% endfor %}
-  </tr>
-  {% endfor %}
-</table>
+      {% endfor %}
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:120px">Slot</th>
+          <th style="width:140px">Capacity</th>
+          <th style="width:140px">Taken</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in day.rows %}
+        <tr>
+          <td>{{ r.label }}</td>
+          <td>{{ r.capacity }}</td>
+          <td>{{ r.taken }}</td>
+          <td>
+            {% if r.disabled %}
+              <span class="muted">{{ r.state_hint or "Closed" }}</span>
+            {% elif r.capacity <= r.taken %}
+              <span class="muted">Full</span>
+            {% else %}
+              <span class="muted">Open</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
+
 {% endblock %}
