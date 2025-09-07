@@ -2,18 +2,26 @@
 Description=Overtime Kiosk
 After=network-online.target
 Wants=network-online.target
+# If running on desktop, uncomment next line to wait for X:
+# After=graphical.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/tracymaint/overtime_pi_kiosk_full
-Environment="PYTHONUNBUFFERED=1"
-ExecStart=/home/tracymaint/overtime_pi_kiosk_full/.venv/bin/python app.py
-Restart=always
+# >>>> ADJUST THESE THREE IF YOUR PATH/USER DIFFER <<<<
 User=tracymaint
 Group=tracymaint
+WorkingDirectory=/home/tracymaint/overtime_pi_kiosk_full
 
-# Give the service access to display; adjust if using Wayland
+Environment="PYTHONUNBUFFERED=1"
+# If you deploy to Wayland or non-LXDE, you may need a different DISPLAY.
 Environment=DISPLAY=:0
+
+ExecStart=/home/tracymaint/overtime_pi_kiosk_full/.venv/bin/python app.py
+Restart=always
+RestartSec=2
+
+# Hardening (optional)
+NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target
