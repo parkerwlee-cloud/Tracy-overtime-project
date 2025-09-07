@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Pull latest, re-run setup, restart service, remap touch.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,9 +16,9 @@ else
   git stash pop || true
 fi
 
-echo "==> Re-running setup steps..."
-chmod +x setup.sh
-./setup.sh
+echo "==> Re-running setup..."
+chmod +x scripts/setup.sh
+scripts/setup.sh
 
 echo "==> Restarting service (if installed)..."
 if systemctl list-unit-files | grep -q "^overtime-kiosk.service"; then
