@@ -1,0 +1,81 @@
+{% extends "_base.html" %}
+{% block title %}Kiosk — Tracy Overtime{% endblock %}
+{% block content %}
+<h1 class="page-title">Sign Up for Overtime</h1>
+
+<aside class="rules">
+  <h2>Today’s Rules</h2>
+  <div class="rule-row"><span class="rule-label">2E Freeze</span><span class="rule-value">Locks after 14:00 prior day</span></div>
+  <div class="rule-row"><span class="rule-label">2L Window</span><span class="rule-value">14:00–15:30 today: only second‑2L can be bumped</span></div>
+  <details class="more"><summary>Details</summary>
+    <ul>
+      <li>“Frozen” means sign-ups are locked.</li>
+      <li>“Bump” may occur per seniority/rotation rules.</li>
+      <li>Ask Admin for assistance if something looks wrong.</li>
+    </ul>
+  </details>
+</aside>
+
+<div class="legend">
+  <span class="legend-item"><span class="legend-dot is-success"></span>Open</span>
+  <span class="legend-item"><span class="legend-dot is-neutral"></span>Filled</span>
+  <span class="legend-item"><span class="legend-dot is-warning"></span>Frozen/Closed</span>
+</div>
+
+{% for day in grid %}
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">{{ day.date|fmt_day_date_iso }}</h3>
+      {% for r in day.rows %}
+        {% if r.state_hint %}<span class="tag" title="{{ r.state_hint }}">{{ r.state_hint }}</span>{% endif %}
+      {% endfor %}
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:160px">Window</th>
+          <th style="width:140px">Taken / Cap</th>
+          <th>Sign Up</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in day.rows %}
+        <tr>
+          <td>
+            {% if day.date|is_weekend %}
+              {{ r.label|weekend_label_display }}
+            {% else %}
+              {{ r.label }}
+            {% endif %}
+          </td>
+          <td>{{ r.taken }} / {{ r.capacity }}</td>
+          <td>
+            {% if r.disabled %}
+              <span class="muted">{{ r.state_hint or "Closed/Frozen" }}</span>
+            {% elif r.capacity <= r.taken %}
+              <span class="muted">Full</span>
+              <form method="post" action="{{ url_for('signup') }}" class="row" style="margin-top:8px; gap:6px">
+                <input type="hidden" name="slot_id" value="{{ r.slot_id }}">
+                <input name="name" placeholder="Full — enter name to try bump" required>
+                <input name="clock_number" placeholder="Clock # (4 digits)" pattern="\\d{4}" required>
+                <input name="phone" placeholder="Phone (optional)">
+                <button class="btn btn-primary" type="submit">Try to bump</button>
+              </form>
+            {% else %}
+              <form method="post" action="{{ url_for('signup') }}" class="row" style="gap:6px">
+                <input type="hidden" name="slot_id" value="{{ r.slot_id }}">
+                <input name="name" placeholder="Your name" required>
+                <input name="clock_number" placeholder="Clock # (4 digits)" pattern="\\d{4}" required>
+                <input name="phone" placeholder="Phone (optional)">
+                <button class="btn btn-primary" type="submit">Sign Up</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
+
+{% endblock %}

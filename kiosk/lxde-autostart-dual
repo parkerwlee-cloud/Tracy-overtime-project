@@ -1,0 +1,7 @@
+# Dual-screen LXDE autostart template (manual version)
+# Copy to: ~/.config/lxsession/LXDE-pi/autostart
+# Adjust the right-screen X offset (e.g., 1920) to match your primary screen width from `xrandr`.
+# Use 'chromium' instead of 'chromium-browser' if that's your binary.
+
+@chromium-browser --kiosk --incognito --noerrdialogs --disable-translate --window-position=0,0 http://localhost:5000/display
+@chromium-browser --kiosk --incognito --noerrdialogs --disable-translate --window-position=1024,0 http://localhost:5000/

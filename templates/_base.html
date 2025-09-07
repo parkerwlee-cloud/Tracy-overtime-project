@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Tracy Overtime{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <span class="logo">TO</span>
+        <div class="brand-text">
+          <strong>Tracy Overtime</strong>
+          <small class="sub">Fair • Clear • On‑time</small>
+        </div>
+      </div>
+      <nav class="top-nav">
+        <a class="nav-link" href="{{ url_for('kiosk') }}">Kiosk</a>
+        <a class="nav-link" href="{{ url_for('wallboard') }}">Wallboard</a>
+        <a class="nav-link" href="{{ url_for('admin_panel') }}">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-wrap">
+        {% for category, message in messages %}
+          <div class="flash is-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="site-main">
+    <section class="wrap">
+      {% block content %}{% endblock %}
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>Local Time: <span id="clock">--:--</span></div>
+      <div></div>
+    </div>
+  </footer>
+
+  <div id="modal-root" class="modal-root" hidden></div>
+</body>
+</html>
