@@ -1,0 +1,1 @@
+ALTER TABLE slots ADD COLUMN week_id INTEGER REFERENCES weeks(id);

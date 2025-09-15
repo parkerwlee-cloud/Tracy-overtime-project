@@ -1,23 +1,45 @@
-# Tracy Overtime Kiosk
+# Tracy Overtime Kiosk — v0.9.0
 
-Multi-screen Raspberry Pi kiosk for OT signup + wallboard.
+**Two-week view, simplified sign-in, Day vs Rotating priority, weekend freeze.**
 
-## TL;DR install (Raspberry Pi)
+## What’s in v0.9.0
+- Always-visible wallboard showing **Current Week** and **Next Week** (Mon–Sun).
+- Large toggle to focus **Current** or **Next**; default to **Current**.
+- Kiosk flow: **Select slot → type name → pick from roster → confirm.**
+- Admin: **Create Next Week (draft)**, **Save draft without publishing**, **Publish**, **Close**.
+- **Weekend freeze**: Sat/Sun signups locked after **Friday 15:30** (configurable TZ).
+- **Priority**: Day-shift > Rotating; existing **seniority** and existing rules preserved;
+  on weekends **Full 8 auto-bumps partials** (after shift priority). Deterministic tie-breaks.
 
+## Quick start (fresh Pi or local)
 ```bash
-# One-time: clone to target path used by service file
-sudo apt update && sudo apt install -y git
-mkdir -p /home/tracymaint && cd /home/tracymaint
-git clone <YOUR_REPO_URL> overtime_pi_kiosk_full
-cd overtime_pi_kiosk_full
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-# Setup
-chmod +x scripts/setup.sh
-scripts/setup.sh
+# Initialize .env
+cp .env.example .env
+# (Edit ADMIN_PASSWORD, TWILIO creds if needed)
 
-# Initialize DB (idempotent)
-python3 init_db.py   # or: .venv/bin/python init_db.py
+# Initialize DB & run migrations
+bash scripts/migrate.sh
 
-# Start service
+# Run dev server
+python run.py
+```
+
+## Systemd service (optional)
+```bash
+sudo cp systemd/overtime-kiosk.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable overtime-kiosk.service
 sudo systemctl start overtime-kiosk.service
-systemctl status overtime-kiosk.service
+```
+
+## Self-test
+```bash
+bash scripts/self-test.sh
+```
+
+## Versioning
+Single source of truth in `VERSION`. The app footer and admin UI display `v0.9.0`.

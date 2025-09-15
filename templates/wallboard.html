@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Wallboard</h2>
+
+<div class="toggle">
+  <strong>Focus:</strong>
+  <button id="focusCurrent" class="focus">Current Week</button>
+  <button id="focusNext">Next Week</button>
+</div>
+
+<div class="two-col">
+  <section id="wb_current" class="focus">
+    <h3>Current Week ({{ cur_week.start_date }} → {{ cur_week.end_date }})</h3>
+    {% for sl in cur_slots %}
+      <div class="slot {% if sl.is_closed %}locked{% endif %}">
+        <div><strong>{{ sl.date }}</strong> — {{ sl.label }}</div>
+        <div>
+          {% if sl.assigned_employee %}
+            <span class="name-tag">{{ sl.assigned_employee.display_tag() }}</span>
+          {% else %}
+            <em>Open</em>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+
+  <section id="wb_next">
+    {% if not nxt_week %}
+      <h3>Next Week: Not created</h3>
+    {% else %}
+      <h3>Next Week ({{ nxt_week.start_date }} → {{ nxt_week.end_date }}) — <em>{{ nxt_week.status }}</em></h3>
+      {% for sl in nxt_slots %}
+        <div class="slot {% if sl.is_closed %}locked{% endif %}">
+          <div><strong>{{ sl.date }}</strong> — {{ sl.label }}</div>
+          <div>
+            {% if sl.assigned_employee %}
+              <span class="name-tag">{{ sl.assigned_employee.display_tag() }}</span>
+            {% else %}
+              <em>Open</em>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </section>
+</div>
+
+<script src="/static/wallboard.js"></script>
+{% endblock %}

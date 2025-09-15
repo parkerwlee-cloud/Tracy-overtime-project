@@ -1,21 +1,13 @@
 [Unit]
-Description=Overtime Kiosk
+Description=Overtime Kiosk v0.9.0
 After=network-online.target
-Wants=network-online.target
-# If you want to wait for desktop/X:
-# After=graphical.target
 
 [Service]
 Type=simple
-User=tracymaint
-Group=tracymaint
-WorkingDirectory=/home/tracymaint/overtime_pi_kiosk_full
-Environment="PYTHONUNBUFFERED=1"
-Environment=DISPLAY=:0
-ExecStart=/home/tracymaint/overtime_pi_kiosk_full/.venv/bin/python app.py
-Restart=always
-RestartSec=2
-NoNewPrivileges=true
+WorkingDirectory=%h/overtime_pi_kiosk_full
+Environment="FLASK_ENV=production"
+ExecStart=%h/overtime_pi_kiosk_full/.venv/bin/python run.py
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

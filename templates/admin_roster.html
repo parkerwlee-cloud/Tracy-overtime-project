@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin — Roster</h2>
+<form method="post">
+  <table>
+    <thead><tr><th>Name</th><th>Clock #</th><th>Shift Type</th></tr></thead>
+    <tbody>
+      {% for e in employees %}
+      <tr>
+        <td>{{ e.first_name }} {{ e.last_name }}</td>
+        <td>{{ e.clock_number }}</td>
+        <td>
+          <select name="shift_type_{{ e.id }}">
+            <option value="DAY" {% if e.shift_type=='DAY' %}selected{% endif %}>DAY</option>
+            <option value="ROTATING" {% if e.shift_type=='ROTATING' %}selected{% endif %}>ROTATING</option>
+          </select>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

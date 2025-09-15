@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin — Weeks</h2>
+<form action="/admin/weeks/create-next" method="post"><button>Create Next Week (Draft)</button></form>
+
+<table>
+  <thead><tr><th>Start</th><th>End</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>
+    {% for wk in weeks %}
+    <tr>
+      <td>{{ wk.start_date }}</td>
+      <td>{{ wk.end_date }}</td>
+      <td>{{ wk.status }}</td>
+      <td>
+        <form style="display:inline" action="/admin/weeks/{{ wk.id }}/save" method="post">
+          <button>Save (Draft)</button>
+        </form>
+        <form style="display:inline" action="/admin/weeks/{{ wk.id }}/publish" method="post">
+          <button>Publish</button>
+        </form>
+        <form style="display:inline" action="/admin/weeks/{{ wk.id }}/close" method="post">
+          <button>Close</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p><a href="/admin/roster">Edit Roster</a></p>
+{% endblock %}
