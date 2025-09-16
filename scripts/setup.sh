@@ -1,79 +1,85 @@
 #!/usr/bin/env bash
-# One-step Raspberry Pi setup for the Tracy overtime kiosk.
-# - Installs apt packages
-# - Creates/updates Python venv + installs requirements
-# - Ensures scripts executable
-# - Installs touchscreen map-by-name + autostart
-# - Installs/enables systemd service
-# - Initializes DB (idempotent)
-# - Starts/restarts the service
-# - Runs touchscreen mapping immediately
+# scripts/setup.sh — one-stop setup for Raspberry Pi (Pi 4/5)
 set -euo pipefail
 
-log() { printf "\n\033[1;36m%s\033[0m\n" "$*"; }
-ensure_dir() { mkdir -p "$1"; }
-append_once() { local line="$1" file="$2"; touch "$file"; grep -Fqx "$line" "$file" || echo "$line" >> "$file"; }
+MODE="${1:-dual}"   # display | kiosk | dual
+APPDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+VENV="${APPDIR}/.venv"
+SERVICE_NAME="overtime-kiosk"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+say() { echo -e "\033[1;34m▶\033[0m $*"; }
+warn() { echo -e "\033[1;33m⚠\033[0m $*"; }
+ok() { echo -e "\033[1;32m✓\033[0m $*"; }
 
-# --- Constants for this deployment ---
-KIOSK_USER="tracymaint"
-KIOSK_GROUP="tracymaint"
-REPO_PATH="/home/${KIOSK_USER}/overtime_pi_kiosk_full"
-SERVICE_NAME="overtime-kiosk.service"
-SERVICE_FILE_LOCAL="systemd/${SERVICE_NAME}"
-SERVICE_FILE_SYS="/etc/systemd/system/${SERVICE_NAME}"
-VENV_DIR="${REPO_ROOT}/.venv"
-PYTHON="${VENV_DIR}/bin/python"
+say "Repository: $APPDIR"
+say "Mode: $MODE"
 
-log "==> Overtime Kiosk — One-step setup starting"
+say "Making all repo scripts executable"
+find "${APPDIR}/scripts" -type f -name "*.sh" -exec chmod +x {} \; || true
+ok "Scripts are executable"
 
-# --- APT packages ----------------------------------------------------------
-log "Updating apt & installing packages..."
-sudo apt update
-sudo apt install -y \
-  python3 python3-venv python3-pip \
-  git curl \
-  x11-xserver-utils xinput xinput-calibrator \
-  unclutter
-
-# --- Python venv -----------------------------------------------------------
-log "Ensuring Python venv & requirements..."
-if [ ! -d "${VENV_DIR}" ]; then
-  python3 -m venv "${VENV_DIR}"
+if [[ "${XDG_SESSION_TYPE:-}" != "x11" ]]; then
+  warn "Session is '${XDG_SESSION_TYPE:-unknown}'. Dual-screen placement & CTM work best on X11."
+  warn "If windows land wrong, run:  sudo ${APPDIR}/scripts/force-x11.sh"
 fi
-# shellcheck disable=SC1091
-source "${VENV_DIR}/bin/activate"
+
+say "Python venv & requirements"
+python3 -m venv "$VENV"
+source "$VENV/bin/activate"
 pip install --upgrade pip
-if [ -f "requirements.txt" ]; then
-  pip install -r requirements.txt
+pip install -r "$APPDIR/requirements.txt"
+ok "Dependencies installed"
+
+say "Initialize DB"
+python "$APPDIR/init_db.py"
+ok "Database ready"
+
+say "Install systemd service"
+sudo "${APPDIR}/scripts/install-service.sh"
+ok "Service installed"
+
+say "Configure autostart (${MODE})"
+"${APPDIR}/scripts/setup-autostart.sh" "$MODE"
+ok "Autostart configured"
+
+say "Disable screen blanking & DPMS"
+if [[ -x "${APPDIR}/scripts/disable-screen-blanking.sh" ]]; then
+  sudo "${APPDIR}/scripts/disable-screen-blanking.sh" || warn "noblank script reported a non-fatal issue"
 else
-  log "No requirements.txt found — skipping pip installs."
-fi
-deactivate
-
-# --- Make repo scripts executable -----------------------------------------
-log "Ensuring repo scripts are executable..."
-if [ -d "scripts" ]; then
-  chmod +x scripts/* 2>/dev/null || true
+  warn "scripts/disable-screen-blanking.sh not found (skipping)"
 fi
 
-# --- Touchscreen mapping script -------------------------------------------
-log "Installing touchscreen mapping script..."
-ensure_dir "scripts"
-if [ ! -f "scripts/map-touch-by-name.sh" ]; then
-  cat > scripts/map-touch-by-name.sh <<'EOS'
-#!/bin/bash
-# Map the touchscreen input to the correct HDMI display on Raspberry Pi (X11)
-set -euo pipefail
-TOUCH_NAME="Yldzkj USB2IIC_CTP_CONTROL"
-# Allow X to enumerate devices on login
-sleep 2
-# Resolve device ID by exact name (fallback to partial)
-TOUCH_ID="$(xinput list --id-only "$TOUCH_NAME" 2>/dev/null || true)"
-if [ -z "${TOUCH_ID:-}" ]; then
-  TOUCH_ID="$(xinput list | awk -F'id=' '/USB2IIC|CTP|Touch/ && /pointer/ {sub(/].*/,"",$2); print $2; exit}')"
+if [[ "$MODE" == "dual" ]] && xrandr 2>/dev/null | grep -q "^HDMI-2 connected"; then
+  if command -v xinput >/dev/null 2>&1; then
+    say "Calibrating touchscreen to HDMI-2 (CTM)"
+    if [[ -x "${APPDIR}/scripts/setup-touchscreen.sh" ]]; then
+      "${APPDIR}/scripts/setup-touchscreen.sh" || warn "touch calibration non-fatal issue"
+      ok "Touchscreen calibrated"
+    else
+      warn "scripts/setup-touchscreen.sh missing"
+    fi
+  else
+    warn "xinput not installed; try: sudo apt install -y xinput"
+  fi
+else
+  warn "Touch calibration skipped (not dual or HDMI-2 not detected)"
 fi
-# Prefer the output that exposes 1024x600 (the Roadom panel)
-OUTPUT="$(xrandr
+
+say "Install logs helper"
+sudo bash -c 'cat >/usr/local/bin/kiosk-logs' <<'EOF'
+#!/usr/bin/env bash
+exec sudo journalctl -u overtime-kiosk -f -n 80 --no-pager
+EOF
+sudo chmod +x /usr/local/bin/kiosk-logs
+
+say "Restart service"
+sudo systemctl daemon-reload
+sudo systemctl restart "${SERVICE_NAME}"
+sleep 1
+sudo systemctl status "${SERVICE_NAME}" --no-pager || true
+
+echo
+ok "Setup complete"
+echo "   • Logs: kiosk-logs"
+echo "   • Update: ./scripts/update-kiosk.sh"
+echo "   • Change mode: ./scripts/setup-autostart.sh display|kiosk|dual && reboot"
