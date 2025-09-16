@@ -1,69 +1,37 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Kiosk</h2>
-
-<div class="toggle">
-  <label><input type="radio" name="week_view" value="current" checked> Current Week</label>
-  <label style="margin-left:1rem;"><input type="radio" name="week_view" value="next" {% if nxt_week and nxt_week.status == 'published' %}{% else %}disabled{% endif %}> Next Week</label>
-</div>
-
-<div id="weeks" class="two-col">
-  <section id="current" class="focus">
-    <h3>Current Week ({{ cur_week.start_date }} → {{ cur_week.end_date }})</h3>
-    {% for sl in cur_slots %}
-      <div class="slot {% if sl.is_closed %}locked{% endif %}" data-slot="{{ sl.id }}">
-        <div><strong>{{ sl.date }}</strong> — {{ sl.label }}</div>
-        <div>
-          {% if sl.assigned_employee %}
-            <span class="name-tag">{{ sl.assigned_employee.display_tag() }}</span>
-          {% else %}
-            <em>Open</em>
-          {% endif %}
-        </div>
-        <button {% if sl.is_closed %}disabled{% endif %} class="btn-sign">Sign up</button>
-      </div>
-    {% endfor %}
-  </section>
-
-  <section id="next" class="{% if not nxt_week or nxt_week.status != 'published' %}muted{% endif %}">
-    {% if not nxt_week %}
-      <h3>Next Week: Not created</h3>
-    {% elif nxt_week.status != 'published' %}
-      <h3>Next Week: Not published yet</h3>
-    {% else %}
-      <h3>Next Week ({{ nxt_week.start_date }} → {{ nxt_week.end_date }})</h3>
-      {% for sl in nxt_slots %}
-        <div class="slot {% if sl.is_closed %}locked{% endif %}" data-slot="{{ sl.id }}">
-          <div><strong>{{ sl.date }}</strong> — {{ sl.label }}</div>
-          <div>
-            {% if sl.assigned_employee %}
-              <span class="name-tag">{{ sl.assigned_employee.display_tag() }}</span>
+{% for day in grid %}
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">{{ day.date }}</h3>
+    </div>
+    <table>
+      <thead>
+        <tr><th style="width:120px">Slot</th><th style="width:120px">Taken / Cap</th><th>Sign Up</th></tr>
+      </thead>
+      <tbody>
+      {% for r in day.rows %}
+        <tr>
+          <td>{{ r.label }}</td>
+          <td>{{ r.taken }} / {{ r.capacity }}</td>
+          <td>
+            {% if r.disabled %}
+              <span class="muted">{{ r.state_hint or "Closed" }}</span>
+            {% elif r.capacity <= r.taken %}
+              <span class="muted">Full</span>
             {% else %}
-              <em>Open</em>
+              <form method="post" action="/api/signup" class="row">
+                <input type="hidden" name="slot_id" value="{{ r.slot_id }}">
+                <input name="employee_id" placeholder="Employee ID" required style="width:10rem">
+                <button type="submit">Sign up</button>
+              </form>
             {% endif %}
-          </div>
-          <button {% if sl.is_closed %}disabled{% endif %} class="btn-sign">Sign up</button>
-        </div>
+          </td>
+        </tr>
       {% endfor %}
-    {% endif %}
-  </section>
-</div>
-
-<dialog id="signupModal">
-  <form id="signupForm" method="dialog">
-    <h3>Sign up</h3>
-    <input type="hidden" name="slot_id" id="slot_id">
-    <label>Type your name</label>
-    <input type="text" id="name_input" autocomplete="off">
-    <label>Select from roster</label>
-    <select id="employee_select"></select>
-    <menu>
-      <button id="confirmBtn">Confirm</button>
-      <button id="cancelBtn">Cancel</button>
-    </menu>
-    <p id="signupMsg"></p>
-  </form>
-</dialog>
-
-<script src="/static/app.js"></script>
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
 {% endblock %}
