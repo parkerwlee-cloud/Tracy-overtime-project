@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Admin Login</h2>
-<form method="post">
-  <label>Username</label>
-  <input name="username" required>
-  <label>Password</label>
-  <input name="password" type="password" required>
-  <button type="submit">Login</button>
-</form>
+<div class="card" style="max-width:420px">
+  <form method="post" class="row" style="flex-direction:column; gap:.75rem">
+    <label>Username <input name="username" required></label>
+    <label>Password <input type="password" name="password" required></label>
+    <div class="row">
+      <button class="btn primary" type="submit">Sign in</button>
+      <a class="btn" href="/">Cancel</a>
+    </div>
+    {% for cat, msg in get_flashed_messages(with_categories=true) %}
+      <div class="muted" style="color:#c0392b">{{ msg }}</div>
+    {% endfor %}
+  </form>
+</div>
 {% endblock %}
