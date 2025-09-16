@@ -1,55 +1,76 @@
+# app/routes.py
 from datetime import date, timedelta
-from flask import Blueprint, render_template, request, jsonify
+from flask import render_template, request, jsonify
 from .models import session, Week, Slot, Employee
 from .utils import monday_of
 from .services import assign_slot
 
-bp = Blueprint("kiosk", __name__)
+def _grid_for_week(week: Week):
+    # Build grid structure templates expect: list of days => rows
+    rows = []
+    by_date = {}
+    for sl in week.slots:
+        by_date.setdefault(sl.date, []).append(sl)
+    grid = []
+    for i in range(7):
+        d = week.start_date + timedelta(days=i)
+        slots = sorted(by_date.get(d, []), key=lambda s: ["First 4","Full 8","Last 4"].index(s.code) if s.code in ["First 4","Full 8","Last 4"] else 99)
+        day = {
+            "date": d.isoformat(),
+            "rows": [{
+                "slot_id": s.id,
+                "label": s.label,
+                "capacity": s.capacity or 0,
+                "taken": len(s.signups),
+                "disabled": False,
+                "state_hint": ""
+            } for s in slots]
+        }
+        grid.append(day)
+    return grid
 
-def get_current_and_next_weeks():
-    s = session()
-    today = date.today()
-    cur_start = monday_of(today)
-    cur_end = cur_start + timedelta(days=6)
-    cur_week = s.query(Week).filter(Week.start_date==cur_start).one_or_none()
-    if not cur_week:
-        cur_week = Week(start_date=cur_start, end_date=cur_end, status="published")
-        s.add(cur_week); s.commit()
-    nxt_start = cur_start + timedelta(days=7)
-    nxt_week = s.query(Week).filter(Week.start_date==nxt_start).one_or_none()
-    return cur_week, nxt_week
+def register_kiosk(app):
+    @app.get("/")
+    def kiosk():
+        s = session()
+        try:
+            today = date.today()
+            start = monday_of(today)
+            week = s.query(Week).filter(Week.start_date == start).one_or_none()
+            if not week:
+                return render_template("kiosk.html", grid=[], roster=[])
+            grid = _grid_for_week(week)
+            emps = s.query(Employee).order_by(Employee.last_name.asc(), Employee.first_name.asc()).all()
+            roster = [{"id": e.id, "name": f"{e.first_name} {e.last_name}", "tag": e.display_tag()} for e in emps]
+            return render_template("kiosk.html", grid=grid, roster=roster)
+        finally:
+            s.close()
 
-@bp.route("/")
-def kiosk():
-    cur_week, nxt_week = get_current_and_next_weeks()
-    s = session()
-    cur_slots = s.query(Slot).filter(Slot.week_id==cur_week.id).all()
-    nxt_slots = []
-    if nxt_week and nxt_week.status == "published":
-        nxt_slots = s.query(Slot).filter(Slot.week_id==nxt_week.id).all()
-    employees = s.query(Employee).all()
-    return render_template("kiosk.html", cur_week=cur_week, nxt_week=nxt_week, cur_slots=cur_slots, nxt_slots=nxt_slots, employees=employees)
+    @app.get("/wallboard")
+    def wallboard():
+        s = session()
+        try:
+            today = date.today()
+            start = monday_of(today)
+            week = s.query(Week).filter(Week.start_date == start).one_or_none()
+            grid = _grid_for_week(week) if week else []
+            return render_template("display.html", grid=grid)
+        finally:
+            s.close()
 
-@bp.route("/wallboard")
-def wallboard():
-    cur_week, nxt_week = get_current_and_next_weeks()
-    s = session()
-    cur_slots = s.query(Slot).filter(Slot.week_id==cur_week.id).all()
-    nxt_slots = []
-    if nxt_week:
-        nxt_slots = s.query(Slot).filter(Slot.week_id==nxt_week.id).all()
-    return render_template("wallboard.html", cur_week=cur_week, nxt_week=nxt_week, cur_slots=cur_slots, nxt_slots=nxt_slots)
+    @app.post("/api/signup")
+    def api_signup():
+        data = request.get_json(force=True) if request.is_json else request.form
+        slot_id = int(data.get("slot_id", 0))
+        employee_id = int(data.get("employee_id", 0))
+        body, code = assign_slot(slot_id, employee_id)
+        return jsonify(body), code
 
-@bp.post("/api/signup")
-def api_signup():
-    data = request.get_json(force=True)
-    slot_id = int(data.get("slot_id", 0))
-    employee_id = int(data.get("employee_id", 0))
-    body, code = assign_slot(slot_id, employee_id)
-    return jsonify(body), code
-
-@bp.get("/api/roster")
-def api_roster():
-    s = session()
-    emps = s.query(Employee).order_by(Employee.last_name.asc(), Employee.first_name.asc()).all()
-    return jsonify([{ "id": e.id, "name": f"{e.first_name} {e.last_name}", "tag": e.display_tag()} for e in emps])
+    @app.get("/api/roster")
+    def api_roster():
+        s = session()
+        try:
+            emps = s.query(Employee).order_by(Employee.last_name.asc(), Employee.first_name.asc()).all()
+            return jsonify([{ "id": e.id, "name": f"{e.first_name} {e.last_name}", "tag": e.display_tag()} for e in emps])
+        finally:
+            s.close()
