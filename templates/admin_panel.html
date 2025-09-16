@@ -1,4 +1,4 @@
-{% extends "_base.html" %}
+{% extends "base.html" %}
 {% block content %}
 <h2>Admin Panel</h2>
 
@@ -9,24 +9,19 @@
 
 <h3 style="margin-top:1rem">Slots (capacity & categories)</h3>
 <table>
-  <tr>
-    <th>Date</th>
-    <th>Code</th>
-    <th>Capacity</th>
-    <th>Categories</th>
-  </tr>
+  <tr><th>Date</th><th>Code</th><th>Capacity</th><th>Categories</th></tr>
   {% for r in rows %}
   <tr>
     <td>{{ r.date }}</td>
     <td>{{ r.code }}</td>
     <td>
-      <form method="POST" action="{{ url_for('admin_set_capacity', slot_id=r.id) }}">
+      <form method="POST" action="{{ url_for('admin_set_capacity', slot_id=r.id) }}" class="row">
         <input type="number" name="capacity" value="{{ r.capacity }}" min="0" style="width:5rem">
         <button class="btn" type="submit">Save</button>
       </form>
     </td>
     <td>
-      <form method="POST" action="{{ url_for('admin_set_slot_categories', slot_id=r.id) }}">
+      <form method="POST" action="{{ url_for('admin_set_slot_categories', slot_id=r.id) }}" class="row">
         <select name="categories" multiple size="4">
           {% for c in categories %}
             <option value="{{ c }}" {% if c in r.cats %}selected{% endif %}>{{ c }}</option>
