@@ -6,31 +6,25 @@
   <title>Overtime Kiosk v{{ APP_VERSION }}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
   <style>
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .toggle { font-weight: 800; font-size: 1.25rem; }
-    .focus { outline: 3px solid #333; border-radius: 6px; padding: .25rem .5rem; }
-    .muted { opacity: 0.7; }
-    .slot { border: 1px solid #ccc; padding: .5rem; border-radius: 6px; margin-bottom: .4rem; }
-    .slot.locked { background: #eee; }
-    .name-tag { font-weight: 700; }
+    .row { display:flex; gap:.5rem; align-items:center; }
+    .muted { opacity:.7; }
+    .card { border:1px solid #ddd; padding:12px; border-radius:8px; margin:.5rem 0; }
+    table th, table td { vertical-align: top; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Tracy Overtime</h1>
-    <p><small>v{{ APP_VERSION }}</small></p>
-    <nav>
-      <a href="/">Kiosk</a> ·
-      <a href="/wallboard">Wallboard</a> ·
-      <a href="/admin/weeks">Admin</a>
+  <header class="row">
+    <strong>Overtime Kiosk</strong>
+    <nav class="row" style="margin-left:auto">
+      <a href="/">Kiosk</a>
+      <a href="/wallboard">Wallboard</a>
+      <a href="/admin">Admin</a>
     </nav>
-    <hr>
   </header>
-
+  <hr>
   {% block content %}{% endblock %}
-
-  <footer>
-    {% include "_footer.html" %}
+  <footer class="muted" style="margin-top:2rem">
+    v{{ APP_VERSION }}
   </footer>
 </body>
 </html>
