@@ -1,76 +1,42 @@
-# app/routes.py
-from datetime import date, timedelta
-from flask import render_template, request, jsonify
-from .models import session, Week, Slot, Employee
-from .utils import monday_of
-from .services import assign_slot
+# app/services.py
+from datetime import datetime, time, timedelta, date
+from flask import current_app
+import pytz
+from .models import session, Slot, Employee, Signup
+from .utils import is_weekend, parse_categories
 
-def _grid_for_week(week: Week):
-    # Build grid structure templates expect: list of days => rows
-    rows = []
-    by_date = {}
-    for sl in week.slots:
-        by_date.setdefault(sl.date, []).append(sl)
-    grid = []
-    for i in range(7):
-        d = week.start_date + timedelta(days=i)
-        slots = sorted(by_date.get(d, []), key=lambda s: ["First 4","Full 8","Last 4"].index(s.code) if s.code in ["First 4","Full 8","Last 4"] else 99)
-        day = {
-            "date": d.isoformat(),
-            "rows": [{
-                "slot_id": s.id,
-                "label": s.label,
-                "capacity": s.capacity or 0,
-                "taken": len(s.signups),
-                "disabled": False,
-                "state_hint": ""
-            } for s in slots]
-        }
-        grid.append(day)
-    return grid
+def _is_weekend_frozen(slot_date: date) -> bool:
+    """Weekend slots freeze Friday 15:30 local time."""
+    if not is_weekend(slot_date): return False
+    tz = pytz.timezone(current_app.config["TIMEZONE"])
+    wkday = slot_date.weekday()
+    days_back = (wkday - 4) if wkday >= 5 else 0
+    freeze_dt = tz.localize(datetime.combine(slot_date - timedelta(days=days_back), time(15, 30)))
+    return datetime.now(tz) >= freeze_dt
 
-def register_kiosk(app):
-    @app.get("/")
-    def kiosk():
-        s = session()
-        try:
-            today = date.today()
-            start = monday_of(today)
-            week = s.query(Week).filter(Week.start_date == start).one_or_none()
-            if not week:
-                return render_template("kiosk.html", grid=[], roster=[])
-            grid = _grid_for_week(week)
-            emps = s.query(Employee).order_by(Employee.last_name.asc(), Employee.first_name.asc()).all()
-            roster = [{"id": e.id, "name": f"{e.first_name} {e.last_name}", "tag": e.display_tag()} for e in emps]
-            return render_template("kiosk.html", grid=grid, roster=roster)
-        finally:
-            s.close()
+def assign_slot(slot_id: int, employee_id: int):
+    s = session()
+    try:
+        slot = s.get(Slot, slot_id)
+        emp = s.get(Employee, employee_id)
+        if not slot or not emp:
+            return {"error": "Invalid slot or employee"}, 400
+        if _is_weekend_frozen(slot.date):
+            return {"error": "Weekend slots are frozen"}, 400
+        if len(slot.signups) >= (slot.capacity or 0):
+            return {"error": "Slot is full"}, 400
 
-    @app.get("/wallboard")
-    def wallboard():
-        s = session()
-        try:
-            today = date.today()
-            start = monday_of(today)
-            week = s.query(Week).filter(Week.start_date == start).one_or_none()
-            grid = _grid_for_week(week) if week else []
-            return render_template("display.html", grid=grid)
-        finally:
-            s.close()
+        slot_cats = set(parse_categories(slot.categories))
+        emp_cats = set(parse_categories(emp.categories))
+        if slot_cats and not (slot_cats & emp_cats):
+            return {"error": "Employee not in required category"}, 400
 
-    @app.post("/api/signup")
-    def api_signup():
-        data = request.get_json(force=True) if request.is_json else request.form
-        slot_id = int(data.get("slot_id", 0))
-        employee_id = int(data.get("employee_id", 0))
-        body, code = assign_slot(slot_id, employee_id)
-        return jsonify(body), code
+        exists = s.query(Signup).filter(Signup.slot_id == slot.id, Signup.employee_id == emp.id).one_or_none()
+        if exists:
+            return {"ok": True, "message": "Already signed up"}, 200
 
-    @app.get("/api/roster")
-    def api_roster():
-        s = session()
-        try:
-            emps = s.query(Employee).order_by(Employee.last_name.asc(), Employee.first_name.asc()).all()
-            return jsonify([{ "id": e.id, "name": f"{e.first_name} {e.last_name}", "tag": e.display_tag()} for e in emps])
-        finally:
-            s.close()
+        s.add(Signup(slot_id=slot.id, employee_id=emp.id))
+        s.commit()
+        return {"ok": True}, 200
+    finally:
+        s.close()
