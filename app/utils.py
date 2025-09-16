@@ -13,10 +13,10 @@ def tz_now(tzname: str):
     return datetime.now(tz)
 
 def monday_of(d: date):
-    return d - timedelta(days=d.weekday())  # Monday=0
+    return d - timedelta(days=d.weekday())
 
 def is_weekend(d: date):
-    return d.weekday() >= 5  # 5=Sat,6=Sun
+    return d.weekday() >= 5
 
 def parse_categories(val: str) -> list[str]:
     return [x.strip() for x in (val or "").split(",") if x.strip()]
