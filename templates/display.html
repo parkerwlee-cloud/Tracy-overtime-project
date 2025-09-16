@@ -1,53 +1,25 @@
-{% extends "_base.html" %}
-{% block title %}Wallboard — Tracy Overtime{% endblock %}
+{% extends "base.html" %}
 {% block content %}
-<h1 class="page-title">Overtime Status</h1>
-
+<h2>Wallboard</h2>
 {% for day in grid %}
   <div class="card">
-    <div class="row">
-      <h3 style="margin:0">{{ day.date|fmt_day_date_iso }}</h3>
-      {% for r in day.rows %}
-        {% if r.state_hint %}<span class="tag" title="{{ r.state_hint }}">{{ r.state_hint }}</span>{% endif %}
-      {% endfor %}
-    </div>
-
+    <h3 style="margin:0">{{ day.date }}</h3>
     <table>
-      <thead>
-        <tr>
-          <th style="width:160px">Time</th>
-          <th>Window</th>
-          <th style="width:140px">Taken / Cap</th>
-        </tr>
-      </thead>
+      <thead><tr><th style="width:120px">Slot</th><th style="width:140px">Capacity</th><th style="width:140px">Taken</th><th>Status</th></tr></thead>
       <tbody>
         {% for r in day.rows %}
-        <tr class="{% if r.disabled %}muted{% endif %}">
-          <td>{{ r.time or r.slot or r.code }}</td>
-          <td>
-            {% if day.date|is_weekend %}
-              {{ r.label|weekend_label_display }}
-            {% else %}
-              {{ r.label }}
-            {% endif %}
-
-            {% if r.assignees and (r.taken or 0) >= 1 %}
-              <ul class="board-names">
-                {% for p in r.assignees %}
-                  <li>{{ p|fmt_person_from_name }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </td>
+        <tr>
+          <td>{{ r.label }}</td>
+          <td>{{ r.capacity }}</td>
+          <td>{{ r.taken }}</td>
           <td>
             {% if r.disabled %}
               <span class="muted">{{ r.state_hint or "Closed" }}</span>
-            {% elif (r.capacity or 0) <= (r.taken or 0) %}
+            {% elif r.capacity <= r.taken %}
               <span class="muted">Full</span>
             {% else %}
               <span class="muted">Open</span>
             {% endif %}
-            <div class="muted">{{ r.taken or 0 }} / {{ r.capacity or 0 }}</div>
           </td>
         </tr>
         {% endfor %}
@@ -55,5 +27,4 @@
     </table>
   </div>
 {% endfor %}
-
 {% endblock %}
