@@ -21,7 +21,7 @@ def create_app():
     app.config["ADMIN_USERNAME"] = os.getenv("ADMIN_USERNAME", "admin")
     app.config["ADMIN_PASSWORD"] = os.getenv("ADMIN_PASSWORD", "admin123")
 
-    # Twilio (optional; kept for later)
+    # Twilio placeholders (kept for future use)
     app.config["TWILIO_ENABLED"] = str(os.getenv("TWILIO_ENABLED", "false")).lower() == "true"
     app.config["TWILIO_ACCOUNT_SID"] = os.getenv("TWILIO_ACCOUNT_SID", "")
     app.config["TWILIO_AUTH_TOKEN"] = os.getenv("TWILIO_AUTH_TOKEN", "")
@@ -30,7 +30,7 @@ def create_app():
     # DB
     init_db(app)
 
-    # Inject globals for templates
+    # Template globals
     @app.context_processor
     def inject_globals():
         return {
@@ -38,8 +38,7 @@ def create_app():
             "now": tz_now(app.config["TIMEZONE"])
         }
 
-    # Register routes that match your templates' url_for() names
+    # Routes
     register_kiosk(app)
     register_admin(app)
-
     return app
