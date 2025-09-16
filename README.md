@@ -1,45 +1,22 @@
-# Tracy Overtime Kiosk — v0.9.0
+# Overtime Kiosk
 
-**Two-week view, simplified sign-in, Day vs Rotating priority, weekend freeze.**
+Dual-screen Raspberry Pi kiosk for employee overtime sign-ups (touchscreen) and a wallboard (monitor).  
+Flask + SQLAlchemy with a systemd service and Chromium autostart. Touchscreen calibrated automatically.
 
-## What’s in v0.9.0
-- Always-visible wallboard showing **Current Week** and **Next Week** (Mon–Sun).
-- Large toggle to focus **Current** or **Next**; default to **Current**.
-- Kiosk flow: **Select slot → type name → pick from roster → confirm.**
-- Admin: **Create Next Week (draft)**, **Save draft without publishing**, **Publish**, **Close**.
-- **Weekend freeze**: Sat/Sun signups locked after **Friday 15:30** (configurable TZ).
-- **Priority**: Day-shift > Rotating; existing **seniority** and existing rules preserved;
-  on weekends **Full 8 auto-bumps partials** (after shift priority). Deterministic tie-breaks.
+## Features
+- **Two screens, one Pi**: HDMI-1 = Wallboard, HDMI-2 = Touchscreen Kiosk
+- **Admin**: login, employee CRUD, slot capacity & categories
+- **Weekend freeze**: Sat/Sun lock after Friday 15:30 (configurable TZ)
+- **Always-on**: screen blanking/DPMS disabled
+- **One-command setup** for fresh Pis
 
-## Quick start (fresh Pi or local)
+## First-time Setup (Pi)
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Initialize .env
+sudo apt update
+sudo apt install -y git python3-venv xinput chromium
+git clone https://github.com/<you>/tracy-overtime-project.git overtime_pi_kiosk_full
+cd overtime_pi_kiosk_full
 cp .env.example .env
-# (Edit ADMIN_PASSWORD, TWILIO creds if needed)
-
-# Initialize DB & run migrations
-bash scripts/migrate.sh
-
-# Run dev server
-python run.py
-```
-
-## Systemd service (optional)
-```bash
-sudo cp systemd/overtime-kiosk.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable overtime-kiosk.service
-sudo systemctl start overtime-kiosk.service
-```
-
-## Self-test
-```bash
-bash scripts/self-test.sh
-```
-
-## Versioning
-Single source of truth in `VERSION`. The app footer and admin UI display `v0.9.0`.
+nano .env   # set ADMIN_USERNAME, ADMIN_PASSWORD, SECRET_KEY, etc.
+bash scripts/setup.sh dual
+sudo reboot
