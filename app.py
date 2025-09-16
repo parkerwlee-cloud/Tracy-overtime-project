@@ -242,6 +242,11 @@ def wallboard():
     return render_template("display.html", grid=grid, SLOT_TYPES=SLOT_TYPES)
   # ASSIGNEES_ATTACHED
 
+# Alias for backwards-compat if old templates reference a different endpoint name
+@app.get("/display2")
+def display_wallboard_alias():
+    return redirect(url_for("wallboard"), code=302)
+
 @app.route("/admin", methods=["GET","POST"])
 def admin_login():
     if request.method == "POST":
