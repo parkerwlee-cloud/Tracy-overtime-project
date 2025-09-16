@@ -1,15 +1,10 @@
 # app/models.py
 from datetime import date, datetime, timedelta
-from sqlalchemy import (
-    create_engine, Column, Integer, String, Date, ForeignKey, DateTime, Boolean, Table
-)
+from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey, DateTime
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 
 Base = declarative_base()
 SessionLocal = scoped_session(sessionmaker())
-
-# Many-to-many Employee <-> Category via simple comma list (for simplicity)
-# (If you want a real join table later, we can add it.)
 
 class Week(Base):
     __tablename__ = "weeks"
@@ -27,7 +22,7 @@ class Slot(Base):
     code = Column(String, nullable=False)   # "First 4" | "Full 8" | "Last 4"
     label = Column(String, nullable=False)
     capacity = Column(Integer, default=0)
-    categories = Column(String, default="")  # comma-separated category names
+    categories = Column(String, default="")  # comma-separated
     signups = relationship("Signup", back_populates="slot", cascade="all, delete-orphan")
     week = relationship("Week", back_populates="slots")
 
@@ -38,9 +33,9 @@ class Employee(Base):
     last_name = Column(String, nullable=False)
     clock_number = Column(String, nullable=False, unique=True)  # 4 digits
     phone = Column(String, nullable=True)
-    categories = Column(String, default="")  # comma-separated (e.g. "Weld,Press")
+    categories = Column(String, default="")  # comma-separated
     shift_type = Column(String, default="DAY")     # DAY | ROTATING
-    seniority_rank = Column(Integer, default=0)    # higher = more senior (adjust to taste)
+    seniority_rank = Column(Integer, default=0)
 
     def display_tag(self):
         fi = (self.first_name[:1].upper() + ".") if self.first_name else ""
@@ -52,9 +47,7 @@ class Signup(Base):
     slot_id = Column(Integer, ForeignKey("slots.id"), nullable=False)
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-
     slot = relationship("Slot", back_populates="signups")
-    # NOTE: relationship("Employee") works but we don't need backref here
 
 def get_engine(db_url: str):
     if db_url.startswith("sqlite:///"):
@@ -71,7 +64,7 @@ def init_db(app):
     SessionLocal.configure(bind=engine)
     Base.metadata.create_all(engine)
 
-    # Seed current week if missing
+    # Seed this week if missing
     s = SessionLocal()
     try:
         today = date.today()
@@ -81,12 +74,11 @@ def init_db(app):
         if not wk:
             wk = Week(start_date=monday, end_date=sunday, status="published")
             s.add(wk); s.flush()
-
             labels = ["First 4", "Full 8", "Last 4"]
             for i in range(7):
                 d = monday + timedelta(days=i)
                 for lab in labels:
-                    s.add(Slot(week_id=wk.id, date=d, code=lab, label=f"{lab}"))
+                    s.add(Slot(week_id=wk.id, date=d, code=lab, label=lab))
             s.commit()
     finally:
         s.close()
